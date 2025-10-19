@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Projects | Olivia Terris</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- Navbar -->
+  <nav class="navbar navbar-expand-md navbar-dark bg-dark sticky-top">
+    <div class="container">
+      <a class="navbar-brand fw-bold text-accent" href="index.html">Olivia Terris</a>
+      <button class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#navLinks">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div id="navLinks" class="collapse navbar-collapse justify-content-end align-items-center">
+        <ul class="navbar-nav mb-2 mb-md-0 me-3">
+          <li class="nav-item"><a href="about.html" class="nav-link">About</a></li>
+          <li class="nav-item"><a href="experience.html" class="nav-link">Experience</a></li>
+          <li class="nav-item"><a href="projects.html" class="nav-link active">Projects</a></li>
+          <li class="nav-item"><a href="skills.html" class="nav-link">Skills</a></li>
+          <li class="nav-item"><a href="contact.html" class="nav-link">Contact</a></li>
+        </ul>
+        <div class="d-flex align-items-center gap-2">
+          <a href="assests/Olivia_Terris_Resume.pdf" download class="btn btn-accent btn-sm">📄 Resume</a>
+          <button id="themeToggle" class="btn btn-accent btn-sm">🌗 Theme</button>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <main class="container my-5">
+    <h2>Projects</h2>
+
+    <!-- === Project 1 === -->
+    <div class="project-card mt-4">
+      <h5>Social Media Prototype (University Project)</h5>
+      <p>
+        A simple social networking prototype built in Java, allowing users to create profiles, connect with friends, and view mutual connections.
+        The project focuses on efficient file-based data management and scalable data structures.
+      </p>
+      <a href="https://github.com/Dembem1/Java_SNA" target="_blank">→ GitHub Repository</a>
+      <button class="btn btn-accent btn-sm view-code-btn" onclick="toggleProject('p1')">View Code</button>
+
+      <div id="p1" class="project-code">
+        <div class="file-tabs">
+          <button class="file-tab active" onclick="showFile('p1','f1')">Main.java</button>
+          <button class="file-tab" onclick="showFile('p1','f2')">User.java</button>
+          <button class="file-tab" onclick="showFile('p1','f3')">Network.java</button>
+        </div>
+        <pre id="f1" class="language-java"><code>
+// Example placeholder – replace with your own code
+public class Main {
+    public static void main(String[] args) {
+        System.out.println("Welcome to Social Network Prototype!");
+    }
+}
+        </code></pre>
+        <pre id="f2" class="language-java" style="display:none;"><code>
+// Example placeholder
+public class User {
+    private String name;
+    private List&lt;User&gt; friends;
+}
+        </code></pre>
+        <pre id="f3" class="language-java" style="display:none;"><code>
+// Example placeholder
+public class Network {
+    private Map&lt;String, User&gt; users = new HashMap&lt;&gt;();
+}
+        </code></pre>
+      </div>
+      <p class="mt-2"><strong>Tools Used:</strong> Java, GUI, Object-Oriented Programming</p>
+    </div>
+
+    <!-- === Project 2 === -->
+    <div class="project-card mt-4">
+      <h5>Library Management System</h5>
+      <p>
+        Backend system built using Spring Boot and MySQL to manage library books, user accounts, and loan records.
+        Implemented role-based access control, input validation, and error handling layers.
+      </p>
+      <a href="https://github.com/Dembem1/library-system" target="_blank">→ GitHub Repository</a>
+      <button class="btn btn-accent btn-sm view-code-btn" onclick="toggleProject('p2')">View Code</button>
+
+      <div id="p2" class="project-code">
+        <div class="file-tabs">
+          <button class="file-tab active" onclick="showFile('p2','t1')">LibraryApplication.java</button>
+          <button class="file-tab" onclick="showFile('p2','t2')">BookController.java</button>
+        </div>
+        <pre id="t1" class="language-java"><code>
+// Example placeholder – replace with your own code
+@SpringBootApplication
+public class LibraryApplication {
+    public static void main(String[] args) {
+        SpringApplication.run(LibraryApplication.class, args);
+    }
+}
+        </code></pre>
+        <pre id="t2" class="language-java" style="display:none;"><code>
+// Example placeholder
+@RestController
+@RequestMapping("/books")
+public class BookController {
+    @GetMapping
+    public String listBooks() {
+        return "All Books";
+    }
+}
+        </code></pre>
+      </div>
+      <p class="mt-2"><strong>Tools Used:</strong> Java, Spring Boot, MySQL, JPA, RESTful APIs</p>
+    </div>
+
+    <!-- === Project 3 === -->
+    <div class="project-card mt-4">
+      <h5>Hackathon 2025 – Team Web Project</h5>
+      <p>
+        Collaborative university hackathon project where our team designed and developed a fully functional website.
+        My focus was on frontend implementation and UI refinement, ensuring a clean and responsive design across devices.
+      </p>
+      <p>
+        No code available :(
+      </p>
+      <p class="mt-2"><strong>Tools Used:</strong> HTML, CSS, JavaScript, Bootstrap, Team Collaboration</p>
+    </div>
+  </main>
+
+  <footer class="text-center py-4 border-top mt-auto">
+    <p>📍 Dundee, Scotland</p>
+    <p>
+      <a href="mailto:olivia.terris@icloud.com">olivia.terris@icloud.com</a> |
+      <a href="https://github.com/Dembem1" target="_blank">GitHub</a> |
+      <a href="https://www.linkedin.com/in/olivia-terris-95999a267" target="_blank">LinkedIn</a>
+    </p>
+    <p class="text-muted">© 2025 Olivia Terris. All rights reserved.</p>
+  </footer>
+
+  <button id="backToTop" class="btn btn-accent">⬆</button>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/prism.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-java.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-xml.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-css.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-javascript.min.js"></script>
+  <script src="script.js"></script>
+
+  <script>
+    function toggleProject(id) {
+      const block = document.getElementById(id);
+      const isVisible = block.style.display === 'block';
+      document.querySelectorAll('.project-code').forEach(b => b.style.display = 'none');
+      block.style.display = isVisible ? 'none' : 'block';
+    }
+
+    function showFile(projectId, fileId) {
+      const container = document.getElementById(projectId);
+      container.querySelectorAll('pre').forEach(p => p.style.display = 'none');
+      container.querySelectorAll('.file-tab').forEach(tab => tab.classList.remove('active'));
+      container.querySelector('#' + fileId).style.display = 'block';
+      event.target.classList.add('active');
+      Prism.highlightAll();
+    }
+  </script>
+</body>
+</html>

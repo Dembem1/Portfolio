@@ -1,0 +1,314 @@
+/* =========================
+   Portfolio CSS - Unified Dark/Light Themes
+   Colors:
+   accent: #1A7A4C
+   dark bg: #101820
+   light bg: #FFFFFF
+   ========================= */
+
+/* Root vars */
+:root{
+  --accent: #1A7A4C;
+  --dark-bg: #101820;
+  --light-bg: #FFFFFF;
+  --dark-text: #101820;
+  --light-text: #FFFFFF;
+}
+
+/* Layout */
+html, body {
+  height: 100%;
+  margin: 0;
+}
+body {
+  font-family: "JetBrains Mono", monospace;
+  display: flex;
+  flex-direction: column;
+  transition: background-color 0.35s ease, color 0.35s ease;
+}
+main { flex: 1 0 auto; }
+
+/* =========================
+   THEMES
+   ========================= */
+body.dark-theme {
+  background-color: var(--dark-bg);
+  color: var(--light-text);
+}
+body.light-theme {
+  background-color: var(--light-bg);
+  color: var(--dark-text);
+}
+body.dark-theme .text-muted {
+  color: rgba(200, 255, 220, 0.65) !important;
+}
+
+body.light-theme .text-muted {
+  color: rgba(22, 108, 54, 0.738) !important;
+}
+
+/* =========================
+   NAVBAR STYLING
+   ========================= */
+.navbar {
+  padding: 0.75rem 1rem;
+  transition: background-color 0.3s ease;
+}
+
+/* Dark theme navbar */
+body.dark-theme .navbar {
+  background-color: rgba(0,0,0,0.3);
+  backdrop-filter: blur(8px);
+}
+
+/* Navbar brand & links - unified */
+.navbar .navbar-brand,
+.navbar .nav-link {
+  font-weight: 500;
+  transition: color 0.25s ease, text-decoration 0.25s ease;
+}
+
+/* Dark theme links */
+body.dark-theme .navbar .navbar-brand,
+body.dark-theme .navbar .nav-link {
+  color: #ffffff;
+}
+
+/* Light theme links */
+body.light-theme .navbar .navbar-brand,
+body.light-theme .navbar .nav-link {
+  color: #ffffff;
+}
+
+/* Hover & active links - both themes */
+/* Dark theme hover */ 
+body.dark-theme .navbar .nav-link:hover, 
+body.dark-theme .navbar .navbar-brand:hover 
+{ color: var(--accent) !important; }
+
+/* Light theme hover */ 
+body.light-theme .navbar .nav-link:hover, 
+body.light-theme .navbar .navbar-brand:hover 
+{ color: var(--accent) !important; }
+
+/* Buttons (Resume, Theme) */
+.navbar .btn-accent {
+  background-color: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 0.45rem 0.9rem;
+}
+.navbar .btn-accent:hover,
+.navbar .btn-accent:focus {
+  background-color: #16834b;
+  color: #fff;
+}
+
+/* =========================
+   Footer
+   ========================= */
+footer {
+  flex-shrink: 0;
+  padding: 1rem 0;
+  text-align: center;
+  border-top: 1px solid rgba(0,0,0,0.1);
+}
+
+/* Dark theme footer */
+body.dark-theme footer {
+  color: var(--light-text);
+  background: linear-gradient(0deg, rgba(255,255,255,0.02), transparent);
+}
+
+/* Light theme footer */
+body.light-theme footer {
+  color: var(--dark-text);
+  background: rgba(249,249,249,0.95);
+  border-top: 1px solid rgba(0,0,0,0.06);
+}
+
+/* Footer links */
+footer a {
+  color: var(--accent);
+  text-decoration: none;
+}
+footer a:hover {
+  color: #16834b;
+  text-decoration: underline;
+}
+
+/* =========================
+   GENERAL LINKS
+   ========================= */
+a {
+  color: var(--accent);
+  text-decoration: none;
+}
+a:hover {
+  color: #16834b;
+  text-decoration: underline;
+}
+
+/* Back to top button */
+#backToTop {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 1000;
+  display: none;
+  border-radius: 50%;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  background-color: #1A7A4C;
+  color: #FFFFFF;
+}
+
+/* =========================
+   Project Cards & Tabs
+   ========================= */
+.project-card {
+  background-color: rgba(255,255,255,0.05); 
+  color: inherit; 
+  padding: 1.25rem; 
+  border-radius: 12px; 
+  box-shadow: 0 6px 18px rgba(0,0,0,0.35); 
+  transition: transform 0.18s ease, box-shadow 0.18s ease; 
+  margin-bottom: 1.25rem; 
+  border: 1px solid rgba(255,255,255,0.03);
+}
+
+body.light-theme .project-card {
+  background-color: #f8f8f8;
+  color: var(--dark-text);
+  border: 1px solid rgba(0,0,0,0.05);
+  box-shadow: 0 6px 14px rgba(0,0,0,0.06);
+}
+.project-card h5 
+{ 
+    color: var(--accent); 
+    margin-bottom: 0.35rem; 
+}
+.project-card .btn-accent { 
+  color: var(--accent); 
+  border: none; 
+  border-radius: 8px; 
+  padding: 0.45rem 0.9rem; } 
+.project-card .btn-accent:hover { 
+    background-color: #fff;
+    color: #16834b; 
+  }
+
+/* File tabs */
+.file-tabs {
+  display: flex;
+  gap: 6px;
+  background-color: rgba(0,0,0,0.08);
+  padding: 6px;
+  border-radius: 8px 8px 0 0;
+  overflow-x: auto;
+  margin-top: 1rem;
+}
+.file-tab, .project-card .btn-accent {
+  transition: background-color 0.25s ease, color 0.25s ease;
+}
+body.dark-theme .file-tabs { color: #e0e0e0; }
+body.dark-theme .file-tab.active {
+  color: #fff;
+  background-color: rgba(26, 122, 76, 0.6);
+}
+body.light-theme .file-tabs { background-color: rgba(0,0,0,0.04); }
+
+.file-tab {
+  background: transparent;
+  border: none;
+  padding: 6px 10px;
+  cursor: pointer;
+  color: inherit;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 0.9rem;
+  border-radius: 6px;
+}
+.file-tab.active {
+  background: rgba(0,0,0,0.12);
+  color: #fff;
+  box-shadow: inset 0 -3px 0 var(--accent);
+}
+body.light-theme .file-tab.active {
+  background: rgba(0,0,0,0.06);
+  color: var(--dark-text);
+  box-shadow: inset 0 -3px 0 var(--accent);
+}
+
+/* Code area */
+.project-code {
+  background: #0b0d0f2c;
+  color: #e6e6e6;
+  border-radius: 0 0 8px 8px;
+  padding: 1rem;
+  overflow-x: auto;
+  display: none;
+  margin-top: 0;
+}
+body.light-theme .project-code {
+  background: #f7f7f7;
+  color: var(--dark-text);
+  border: 1px solid rgba(0,0,0,0.06);
+}
+
+/* Prism overrides */
+pre[class*="language-"] {
+  margin: 0;
+  background: transparent;
+  border-radius: 0;
+  padding: 0;
+  overflow: visible;
+}
+code[class*="language-"] {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 0.92rem;
+  line-height: 1.45;
+  display: block;
+  padding: 1rem;
+}
+
+/* Responsive */
+@media (max-width: 576px) {
+  .file-tab { padding: 6px 8px; font-size: 0.82rem; }
+  .project-card { padding: 1rem; }
+}
+
+/* Send message btn */
+#contactForm .btn-accent { 
+  color: var(--light-text); 
+  border: none; 
+  border-radius: 8px; 
+  background-color: var(--accent);
+  padding: 0.45rem 0.9rem; } 
+#contactForm .btn-accent:hover { 
+    background-color: var(--dark-bg);
+    color: var(--accent); 
+  }
+
+  /* Send message verification */
+#contactForm .form-feedback {
+  display: none;
+  margin-top: 1rem;
+  padding: 0.75rem 1rem;
+  border-radius: 6px;
+  font-weight: 500;
+}
+#contactForm .form-feedback.success {
+  display: block;
+  background-color: #1A7A4C;
+  color: #fff;
+}
+#contactForm .form-feedback.error {
+  display: block;
+  background-color: #dc3545;
+  color: #fff;
+}
