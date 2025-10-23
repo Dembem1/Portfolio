@@ -48,29 +48,2013 @@
 
       <div id="p1" class="project-code">
         <div class="file-tabs">
-          <button class="file-tab active" onclick="showFile('p1','f1')">Main.java</button>
+          <button class="file-tab active" onclick="showFile('p1','f1')">SocialNetwork.java</button>
           <button class="file-tab" onclick="showFile('p1','f2')">User.java</button>
-          <button class="file-tab" onclick="showFile('p1','f3')">Network.java</button>
+          <button class="file-tab" onclick="showFile('p1','f3')">Pages.java</button>
+          <button class="file-tab" onclick="showFile('p1','f4')">Post.java</button>
+          <button class="file-tab" onclick="showFile('p1','f5')">PostList.java</button>
+          <button class="file-tab" onclick="showFile('p1','f6')">FriendList.java</button>
         </div>
         <pre id="f1" class="language-java"><code>
-// Example placeholder – replace with your own code
-public class Main {
-    public static void main(String[] args) {
-        System.out.println("Welcome to Social Network Prototype!");
+// Social Network class
+// It should store all users data in a ArrayList<User> data structure
+// Should store all data in a file and read data from a file
+// Handles user queries, friend recommendations, and file operations.
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Random;
+import java.util.Set;
+import java.io.IOException;
+
+public class SocialNetwork {
+    // add an arrayList to store all users
+    private ArrayList<User> users;
+    private int userIdCounter = 1; // Start user IDs from 1
+
+    // constructor
+    public SocialNetwork() {
+        this.users = new ArrayList<User>();
+    }
+
+    // Add user and automatically assign an ID
+    public void addUser(String username, String workplace, String hometown, String password) {
+        User newUser = new User(userIdCounter, username, workplace, hometown, password);
+        users.add(newUser);
+        userIdCounter++; // Increment ID for the next user
+    }
+
+    // get all user data by username and 'file name' method
+    public static User getUser(String filename, String username) {
+        Map<String, User> userMap = new HashMap<>(); // Store users by username
+
+        try (BufferedReader reader = new BufferedReader(new FileReader(filename))) {
+            String line;
+            User currentUser = null;
+            FriendList friendList = new FriendList();
+            PostList postList = new PostList();
+
+            while ((line = reader.readLine()) != null) {
+                // Split user information
+                String[] userData = line.split(",");
+                if (userData.length < 5) continue; // Skip malformed lines
+                
+                int userID = Integer.parseInt(userData[0]);
+                String name = userData[1];
+                String workplace = userData[2];
+                String hometown = userData[3];
+                String password = userData[4];
+
+                // Create User object and store it in map (for resolving friends later)
+                User user = new User(userID, name, workplace, hometown, password, new FriendList(), new PostList());
+                userMap.put(name, user); 
+
+                if (name.equals(username)) {
+                    currentUser = user;
+                }
+            }
+
+            // If the user was found, go back through the file to fetch their friends and posts
+            if (currentUser != null) {
+                try (BufferedReader friendReader = new BufferedReader(new FileReader(filename))) {
+                    boolean readingFriends = false;
+                    
+                    while ((line = friendReader.readLine()) != null) {
+                        if (line.startsWith(currentUser.getUserID() + ",")) {
+                            readingFriends = true; // Start reading their friends/posts
+                            continue;
+                        }
+                        if (readingFriends) {
+                            if (line.startsWith("Friends:")) {
+                                String friendsData = line.substring(8).trim();
+                                if (!friendsData.isEmpty()) {
+                                    String[] friendNames = friendsData.split(";");
+                                    for (String friendName : friendNames) {
+                                        User friend = userMap.get(friendName.trim());
+                                        if (friend != null) {
+                                            friendList.addFriend(friend); // Add User object instead of String
+                                        }
+                                    }
+                                }
+                            } else if (line.startsWith("Posts:")) {
+                                String postsData = line.substring(6).trim();
+                                if (!postsData.isEmpty()) {
+                                    String[] posts = postsData.split(";");
+                                    for (String postData : posts) {
+                                        String[] postParts = postData.split("\\|");
+                                        if (postParts.length == 3) { // Ensure correct format
+                                            int postID = Integer.parseInt(postParts[0]);
+                                            String content = postParts[1];
+                                            int likes = Integer.parseInt(postParts[2]);
+                                            Post post = new Post(postID, content, likes);
+                                            postList.addPost(post);
+                                        }
+                                    }
+                                }
+                                break; // Stop reading once posts are found
+                            }
+                        }
+                    }
+                }
+
+                // Return user with populated friends and posts
+                return new User(currentUser.getUserID(), currentUser.getUsername(), currentUser.getWorkplace(),
+                        currentUser.getHometown(), currentUser.getPassword(), friendList, postList);
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return null; // Return null if user is not found
+    }
+
+    // remove a user from the list
+    public void removeUser(User user) {
+        users.remove(user);
+    }
+
+    // find a user by ID
+    public User findUser(int userID) {
+        for (User user : users) {
+            if (user.getUserID() == userID) {
+                return user;
+            }
+        }
+        return null; // User not found
+    }
+    
+
+    // find a user by username
+    public User findUser(String username) {
+        for (User user : users) {
+            if (user.getUsername().equals(username)) {
+                return user;
+            }
+        }
+        return null; // User not found 
+    }
+
+    // display all users in the network
+    public void displayUsers() {
+        for (User user : users) {
+            System.out.println(user);
+        }
+    }
+
+    // friend recommendations (friends of friends)
+    public static List<User> getFriendRecommendations(User loggedInUser) {
+        Set<User> recommendations = new HashSet<>();
+        
+        for (User friend : loggedInUser.getFriends().getFriends()) {
+            for (User potentialFriend : friend.getFriends().getFriends()) {
+                if (!loggedInUser.getFriends().isFriend(potentialFriend) && !potentialFriend.equals(loggedInUser)) {
+                    recommendations.add(potentialFriend);
+                }
+            }
+        }
+        
+        return new ArrayList<>(recommendations);
+    }
+
+
+    // save all users data to a file
+    public boolean saveToFile(String filename, int ID, String username, String workplace, String hometown, String password) {
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(filename, true))) {
+            for (User user : users) {
+                // Save user info
+                writer.write(user.getUserID() + "," + user.getUsername() + "," + 
+                             user.getWorkplace() + "," + user.getHometown() + "," + user.getPassword());
+                writer.newLine();
+    
+                // Save friends (by userID)
+                StringBuilder friendsLine = new StringBuilder("Friends:");
+                for (User friend : user.getFriends().getFriends()) {
+                    friendsLine.append(friend.getUserID()).append(",");
+                }
+                writer.write(friendsLine.toString());
+                writer.newLine();
+    
+                // Save posts
+                StringBuilder postsLine = new StringBuilder("Posts:");
+                for (Post post : user.getPosts().getPosts()) {
+                    postsLine.append(post.getPostID()).append("|")
+                            .append(post.getContent().replace(",", " ")).append("|")
+                            .append(post.getLikes()).append(";");
+                }
+                writer.write(postsLine.toString());
+                writer.newLine();
+            }
+            writer.flush();  // Make sure data is written before closing
+            return true;
+            //System.out.println("Social network data saved successfully.");
+        } catch (IOException e) {
+            System.out.println("An error occurred while saving user data.");
+            e.printStackTrace();
+            return false;
+        }
+    }    
+
+    // load all users data from a file
+    public void loadFromFile(String filename) {
+        try {
+            BufferedReader reader = new BufferedReader(new FileReader(filename));
+            Map<Integer, User> userMap = new HashMap<>(); // Temporary storage to map userIDs to Users
+            String line;
+            int maxUserID = 0; // Track the highest user ID
+
+            while ((line = reader.readLine()) != null) {
+                String[] userDetails = line.split(",");
+                int userID = Integer.parseInt(userDetails[0]);
+                User user = new User(userID, userDetails[1], userDetails[2], userDetails[3], userDetails[4]);
+                users.add(user);
+                userMap.put(userID, user);
+
+                // Keep track of the highest userID
+                if (userID > maxUserID) {
+                    maxUserID = userID;
+                }
+
+                // Read Friends
+                line = reader.readLine();
+                if (line.startsWith("Friends:")) {
+                    String[] friends = line.substring(8).split(",");
+                    for (String friendID : friends) {
+                        if (!friendID.isEmpty()) {
+                            int fID = Integer.parseInt(friendID);
+                            if (userMap.containsKey(fID)) {
+                                user.getFriends().addFriend(userMap.get(fID));
+                            }
+                        }
+                    }
+                }
+
+                // Read Posts
+                line = reader.readLine();
+                if (line.startsWith("Posts:")) {
+                    String[] posts = line.substring(6).split(";");
+                    for (String postData : posts) {
+                        if (!postData.isEmpty()) {
+                            String[] postParts = postData.split("\\|");
+                            int postID = Integer.parseInt(postParts[0]);
+                            String content = postParts[1];
+                            int likes = Integer.parseInt(postParts[2]);
+                            Post post = new Post(postID, content);
+                            for (int i = 0; i < likes; i++) {
+                                post.setLikes(likes); // Restore likes
+                            }
+                            user.getPosts().addPost(post);
+                        }
+                    }
+                }
+            }
+            // Set userIdCounter to the next available ID
+            userIdCounter = maxUserID + 1;
+
+            System.out.println("Data loaded successfully.");
+            
+        } catch (IOException e) {
+            System.out.println("Error loading data from file.");
+            e.printStackTrace();
+        }
+    }
+
+    public boolean isUserExist(String username, String password) {
+        try (BufferedReader reader = new BufferedReader(new FileReader("social_network_data.txt"))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                String[] userDetails = line.split(",");
+                if (userDetails.length > 1 && userDetails[1].equals(username) && userDetails[4].equals(password)) {
+                    System.out.println("User exists.");
+                    return true;
+                }
+            }
+        } catch (IOException e) {
+            System.out.println("An error occurred while checking user existence.");
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+    public boolean isUsernameValid(String filename, String username) {
+        try (BufferedReader reader = new BufferedReader(new FileReader(filename))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                String[] userDetails = line.split(",");
+                if (userDetails.length > 1 && userDetails[1].equals(username)) {
+                    System.out.println("Username already exists.");
+                    return false;
+                } else {
+                    System.out.println("Username is valid.");
+                    return true;
+                }
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+    public boolean saveUserToFile(String fileName, String username, String hometown, String workplace, String password) {
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(fileName, true))) {
+            int lastID = getLastUserID(fileName); // Get last used ID
+            int userID = lastID + 1; // Assign next available ID
+            
+            writer.newLine();
+            writer.write(userID + "," + username + "," + hometown + "," + workplace + "," + password);
+            writer.newLine();
+            writer.flush();
+            userIdCounter++;
+            return true;
+        } catch (IOException e) {
+            System.out.println("An error occurred while saving user data.");
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+    // add friend method
+    public boolean addFriend(User user, String friendUsername) {
+        // Step 1: Find the user by username
+        User friend = getUser("social_network_data.txt", friendUsername);
+    
+        // Step 2: Check if the user exists and is not already a friend
+        if (friend == null) {
+            return false; // User not found
+        }
+        if (user.getFriends().isFriend(friend)) {
+            return false; // Already friends
+        }
+    
+        // Step 3: Add friend to both users
+        user.getFriends().addFriend(friend);
+        friend.getFriends().addFriend(user);
+    
+        // Step 4: Update database (social_network_data.txt)
+        updateUserFriendsInFile(user);
+        updateUserFriendsInFile(friend);
+    
+        return true;
+    }
+    
+    // update User friends in file
+    public void updateUserFriendsInFile(User user) {
+        String filePath = "social_network_data.txt";
+        List<String> fileLines = new ArrayList<>();
+        boolean isUserFound = false;
+    
+        try (BufferedReader reader = new BufferedReader(new FileReader(filePath))) {
+            String line;
+    
+            while ((line = reader.readLine()) != null) {
+                // Check if this is the user's ID line
+                if (line.startsWith(user.getUserID() + ",")) {
+                    isUserFound = true;
+                }
+    
+                // If we found the user, update their "Friends:" line
+                if (isUserFound && line.startsWith("Friends:")) {
+                    // Convert FriendList to a comma-separated string of friend IDs
+                    List<String> friendIDs = new ArrayList<>();
+                    for (User friend : user.getFriends().getFriends()) {
+                        friendIDs.add(String.valueOf(friend.getUserID()));
+                    }
+    
+                    // Construct the new "Friends:" line
+                    String updatedFriendsLine = "Friends:" + (friendIDs.isEmpty() ? "" : String.join(",", friendIDs));
+                    fileLines.add(updatedFriendsLine);
+    
+                    // Reset flag after updating friends
+                    isUserFound = false;
+                    continue;
+                }
+    
+                // Otherwise, keep the line unchanged
+                fileLines.add(line);
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+            return;
+        }
+    
+        // Write the updated content back to the file
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(filePath))) {
+            for (String fileLine : fileLines) {
+                writer.write(fileLine);
+                writer.newLine();
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }    
+
+    // get last user ID from the file
+    private int getLastUserID(String fileName) {
+        int maxID = 0;
+        
+        try (BufferedReader reader = new BufferedReader(new FileReader(fileName))) {
+            String line;
+            
+            while ((line = reader.readLine()) != null) {
+                if (line.trim().isEmpty() || !line.contains(",")) continue; // Ignore empty lines
+                
+                String[] userDetails = line.split(",");
+                if (userDetails.length >= 1) {
+                    try {
+                        int userID = Integer.parseInt(userDetails[0]);
+                        if (userID > maxID) {
+                            maxID = userID;
+                        }
+                    } catch (NumberFormatException e) {
+                        // Ignore invalid ID lines
+                    }
+                }
+            }
+        } catch (IOException e) {
+            System.out.println("Error reading user file to get last ID.");
+            e.printStackTrace();
+        }
+        
+        return maxID;
+    }
+
+    // get last post id from the file
+    public static int getLastPostID(String fileName) {
+        int maxPostID = 0;
+        
+        try (BufferedReader reader = new BufferedReader(new FileReader(fileName))) {
+            String line;
+            
+            while ((line = reader.readLine()) != null) {
+                if (line.startsWith("Posts:")) {
+                    String[] posts = line.substring(6).split(";");
+                    for (String postData : posts) {
+                        if (!postData.isEmpty()) {
+                            String[] postParts = postData.split("\\|");
+                            int postID = Integer.parseInt(postParts[0]);
+                            maxPostID = Math.max(maxPostID, postID);
+                        }
+                    }
+                }
+            }
+        } catch (IOException e) {
+            System.out.println("Error reading user file.");
+            e.printStackTrace();
+        }
+        
+        return maxPostID + 1;
+    }
+
+    // loadPostsFromUser method
+    public static PostList loadPostsForUser(int userID) {
+        PostList postList = new PostList();
+    
+        // Read the file and load posts for the given user
+        try (BufferedReader reader = new BufferedReader(new FileReader("social_network_data.txt"))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                if (line.startsWith(userID + ",")) {
+                    // Find the user's posts section
+                    while ((line = reader.readLine()) != null && line.startsWith("Posts:")) {
+                        // Parse the posts section
+                        String[] postData = line.substring(6).split(";");
+                        for (String post : postData) {
+                            if (!post.trim().isEmpty()) {
+                                String[] parts = post.split("\\|");
+                                int postID = Integer.parseInt(parts[0]);
+                                String content = parts[1];
+                                Post newPost = new Post(postID, content);
+                                postList.addPost(newPost); // Add post to the post list
+                            }
+                        }
+                    }
+                }
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    
+        return postList;  // Return the list of posts for the user
+    }
+    
+
+    public String[] searchUser(String filename, String username) {
+        try (BufferedReader reader = new BufferedReader(new FileReader(filename))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                String[] userDetails = line.split(",");
+                if (userDetails.length > 1 && userDetails[1].equals(username)) {
+                    System.out.println("User found.");
+                    return new String[]{userDetails[0], userDetails[1], userDetails[2], userDetails[3], userDetails[4]};
+                }
+            }
+        } catch (IOException e) {
+            System.out.println("An error occurred while searching for user.");
+            e.printStackTrace();
+        }
+        return null;
+    }
+    
+    public String[] getRandomUserPost(String filename) {
+        List<String[]> userPosts = new ArrayList<>();
+
+        try (BufferedReader reader = new BufferedReader(new FileReader(filename))) {
+            String line;
+            String currentUser = null;
+
+            while ((line = reader.readLine()) != null) {
+                String[] userDetails = line.split(",");
+                if (userDetails.length > 1) {
+                    currentUser = userDetails[1]; // Get username from 2nd column
+                }
+
+                if (currentUser != null && line.startsWith("Posts:")) {
+                    String[] postDetails = line.split("\\|");
+                    if (postDetails.length > 1) {
+                        userPosts.add(new String[]{currentUser, postDetails[1]}); // Username and Post
+                    }
+                }
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        if (userPosts.isEmpty()) {
+            return new String[]{"No users found", ""};
+        }
+
+        Random random = new Random();
+        return userPosts.get(random.nextInt(userPosts.size())); // Pick a random user post
+    }
+
+    public static void savePostToFile(String fileName, int userID, String postContent) {
+        List<String> fileLines = new ArrayList<>();
+        int maxPostID = 0;
+
+        // Read file and store lines in a list
+        try (BufferedReader reader = new BufferedReader(new FileReader(fileName))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                fileLines.add(line);
+
+                // Find the highest post ID to ensure unique IDs
+                if (line.startsWith("Posts:")) {
+                    String[] posts = line.substring(6).split(";");
+                    for (String postData : posts) {
+                        if (!postData.isEmpty()) {
+                            String[] postParts = postData.split("\\|");
+                            int postID = Integer.parseInt(postParts[0]);
+                            maxPostID = Math.max(maxPostID, postID);
+                        }
+                    }
+                }
+            }
+        } catch (IOException e) {
+            System.out.println("Error reading the file.");
+            e.printStackTrace();
+            return;
+        }
+
+        // Rewrite file with new post added
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(fileName))) {
+            for (int i = 0; i < fileLines.size(); i++) {
+                String line = fileLines.get(i);
+                writer.write(line);
+                writer.newLine();
+
+                // If we find the user's section, add the post after it
+                if (line.startsWith(userID + ",")) {
+                    if (i + 1 < fileLines.size() && fileLines.get(i + 1).startsWith("Posts:")) {
+                        // Append new post to existing "Posts:" section
+                        String updatedPosts = fileLines.get(i + 1) + (maxPostID + 1) + "|" + postContent.replace(",", " ") + "|0;";
+                        writer.write(updatedPosts);
+                        writer.newLine();
+                        i++; // Skip old posts line
+                    } else {
+                        // If no "Posts:" section exists, create one
+                        writer.write("Posts:" + (maxPostID + 1) + "|" + postContent.replace(",", " ") + "|0;");
+                        writer.newLine();
+                    }
+                }
+            }
+
+        } catch (IOException e) {
+            System.out.println("Error writing to file.");
+            e.printStackTrace();
+        }
+    }
+
+    public List<String> getUsersFromSameCity(String city) {
+        List<String> usersInCity = new ArrayList<>();
+
+        try (BufferedReader br = new BufferedReader(new FileReader("social_network_data.txt"))) {
+            String line;
+            while ((line = br.readLine()) != null) {
+                String[] data = line.split(",", -1);
+                if (data.length > 3) { 
+                    System.out.println("Username: " + data[0] + ", City: " + data[3]);
+                    
+                    if (data[3].trim().equalsIgnoreCase(city.trim())) {
+                        usersInCity.add(data[1]);
+                    }
+                } else {
+                    System.out.println("Skipping line: " + line);
+                }
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return usersInCity;
     }
 }
         </code></pre>
         <pre id="f2" class="language-java" style="display:none;"><code>
-// Example placeholder
+// User class
+// It should store: userId, userName, workplace, hometown, password, friends(use FriendList class for data structure) and posts(use PostList class for data structure)
+// add a constructor and get/set methods for all the fields
+
 public class User {
-    private String name;
-    private List&lt;User&gt; friends;
+    private int userID;
+    private String username;
+    private String workplace;
+    private String hometown;
+    private String password;
+    private FriendList friends;
+    private PostList posts;
+    
+
+    public User(int userID, String username, String workplace, String hometown, String password) {
+        this.userID = userID;
+        this.username = username;
+        this.workplace = workplace;
+        this.hometown = hometown;
+        this.password = password;
+        this.friends = new FriendList();
+        this.posts = new PostList();
+    }
+    
+    public User(int userID, String username, String workplace, String hometown, String password, FriendList friends, PostList posts) {
+        this.userID = userID;
+        this.username = username;
+        this.workplace = workplace;
+        this.hometown = hometown;
+        this.password = password;
+        this.friends = new FriendList();
+        this.posts = new PostList();
+    }
+
+    public int getUserID() {
+        return userID;
+    }
+
+    public String getUsername() {
+        return username;
+    }
+
+    public String getWorkplace() {
+        return workplace;
+    }
+
+    public String getHometown() {
+        return hometown;
+    }
+
+    public String getPassword() {
+        return password;
+    }
+
+    public FriendList getFriends() {
+        return friends;
+    }
+
+    public PostList getPosts() {
+        return posts;
+    }
+
+    public void setUserID(int userID) {
+        this.userID = userID;
+    }
+
+    public void setUsername(String username) {
+        this.username = username;
+    }
+
+    public void setWorkplace(String workplace) {
+        this.workplace = workplace;
+    }
+
+    public void setHometown(String hometown) {
+        this.hometown = hometown;
+    }
+
+    public void setPassword(String password) {
+        this.password = password;
+    }
+
+    public void setFriends(FriendList friends) {
+        this.friends = friends;
+    }
+
+    public void setPosts(PostList posts) {
+        this.posts = posts;
+    }
+
+    // method to load posts from the file
+    private void loadUserPosts() {
+        this.posts = SocialNetwork.loadPostsForUser(this.userID);
+    }
 }
         </code></pre>
         <pre id="f3" class="language-java" style="display:none;"><code>
-// Example placeholder
-public class Network {
-    private Map&lt;String, User&gt; users = new HashMap&lt;&gt;();
+// Background color: 245, 235, 224
+// Buttons color: 214, 204, 194
+// Background for posts color: 227, 213, 202
+// Font: Arial
+
+// https://icons8.com/icons
+// https://www.flaticon.com/
+
+import java.awt.*;
+import java.awt.event.*;
+import java.util.Set;
+import javax.swing.*;
+import java.util.List;
+import java.util.stream.Collectors;
+
+
+public class Pages {
+    
+    // run program
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(() -> {
+            try {
+                UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            SingIn_Register.singIn_Register();
+        });
+    }
+
+    // colors
+    static final Color BACKGROUND_COLOR = new Color(0xDFDFDF);
+    static final Color BUTTON_COLOR = new Color(0xD6CCC2);
+    static final Color TEXT_COLOR = new Color(0x000000);
+
+    // fonts
+    static final Font HEADER_FONT = new Font("Arial", Font.BOLD, 24);
+    static final Font BODY_FONT = new Font("Arial", Font.PLAIN, 16);
+
+    // styled buttons
+    public static JButton createStyledButton(String text) {
+        JButton button = new JButton(text);
+        button.setFont(BODY_FONT);
+        button.setForeground(TEXT_COLOR);
+        button.setBackground(new Color(0xADD8E6)); // light blue color
+        button.setBorder(BorderFactory.createEmptyBorder(10, 20, 0, 20));
+        button.setContentAreaFilled(false);
+        button.setOpaque(true);
+        button.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseEntered(MouseEvent e) {
+                button.setBackground(new Color(0x87CEEB)); // darker light blue color
+            }
+    
+            @Override
+            public void mouseExited(MouseEvent e) {
+                button.setBackground(new Color(0xADD8E6)); // light blue color
+            }
+        });
+        return button;
+}
+
+    // styled text fields
+    public static JTextField createStyledTextField() {
+        JTextField textField = new JTextField();
+        textField.setFont(BODY_FONT);
+        textField.setForeground(TEXT_COLOR);
+        textField.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(Color.GRAY),
+            BorderFactory.createEmptyBorder(5, 5, 5, 5)));
+        return textField;
+    }
+}
+
+//###############################################################################
+//######################## SING IN AND REGISTER PAGES ###########################
+//###############################################################################
+class SingIn_Register {
+    static void singIn_Register() {
+        JFrame frame = new JFrame("Registration Page");
+        frame.setSize(500, 800);
+        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+
+        // Create a panel to hold components
+        JPanel panel = new JPanel();
+        panel.setBackground(new java.awt.Color(223, 223, 223));
+        panel.setLayout(null);
+
+        // Create username label and text field
+        JLabel userLabel = new JLabel("Username:");
+        userLabel.setBounds(150, 200, 200, 25);
+        panel.add(userLabel);
+
+        JTextField userText = new JTextField();
+        userText.setBounds(150, 230, 200, 25);
+        panel.add(userText);
+
+        // Create password label and password field
+        JLabel passwordLabel = new JLabel("Password:");
+        passwordLabel.setBounds(150, 270, 200, 25);
+        panel.add(passwordLabel);
+
+        JPasswordField passwordField = new JPasswordField();
+        passwordField.setBounds(150, 300, 200, 25);
+        panel.add(passwordField);
+        
+        JButton loginButton = Pages.createStyledButton("Login");
+        loginButton.setBounds(175, 350, 150, 30);
+        panel.add(loginButton);
+
+        loginButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                String username = userText.getText();
+                String password = new String(passwordField.getPassword());
+                SocialNetwork socialNetwork = new SocialNetwork();
+                if (socialNetwork.isUserExist(username, password)) {
+                    // add user to the social network
+                    User user = socialNetwork.getUser("social_network_data.txt", username);
+                    Homepage.homepage(user);
+                    frame.dispose();
+                } else if (username.isEmpty() || password.isEmpty()) {
+                    JOptionPane.showMessageDialog(frame, "Please fill in all fields", "Error", JOptionPane.ERROR_MESSAGE);
+                }else {
+                    JOptionPane.showMessageDialog(frame, "Invalid username or password", "Error", JOptionPane.ERROR_MESSAGE);
+                } 
+            }
+        });
+
+        // Create register button
+        JLabel dontHaveAnAccountLabel = new JLabel("Don't have an account?");
+        dontHaveAnAccountLabel.setBounds(188, 420, 250, 25); 
+        dontHaveAnAccountLabel.setFont(new Font("Arial", Font.PLAIN, 12));
+        dontHaveAnAccountLabel.setForeground(new Color(80, 80, 80)); 
+        panel.add(dontHaveAnAccountLabel);
+        
+        JButton registerButton = new JButton("Register");
+        registerButton.setBounds(175, 443, 150, 30); 
+        registerButton.setBorderPainted(false);
+        registerButton.setContentAreaFilled(false);
+        registerButton.setFocusPainted(false);
+        registerButton.setOpaque(false);
+        registerButton.setForeground(new Color(0, 102, 204)); 
+        registerButton.setFont(new Font("Arial", Font.BOLD, 12));
+        panel.add(registerButton);
+        
+        // register button
+        registerButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                RegistrationInfo.registrationInfo();
+                frame.dispose();
+            }
+        });
+
+        // Label for the app name
+        JLabel appNameLabel = new JLabel("Socialise YS");
+        appNameLabel.setBounds(180, 680, 200, 50); 
+        appNameLabel.setFont(new Font("Times New Roman", Font.ITALIC, 26));
+        appNameLabel.setForeground(new Color(0x206472)); 
+        panel.add(appNameLabel);
+        frame.add(panel); 
+        frame.setVisible(true);
+        frame.add(panel);
+        // Make the frame visible
+        frame.setVisible(true);
+    }
+}
+
+//###############################################################################
+//######################## REGISTRATION PAGE ####################################
+//###############################################################################
+class RegistrationInfo {
+    static void registrationInfo() {
+        JFrame frame = new JFrame("Registration Page");
+        frame.setSize(500, 800);
+        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        frame.setVisible(true);
+
+        JPanel panel = new JPanel();
+        panel.setBackground(new java.awt.Color(223, 223, 223));
+        panel.setLayout(null);
+
+        JLabel userLabel = new JLabel("Username:");
+        userLabel.setBounds(150, 100, 200, 25);
+        panel.add(userLabel);
+
+        JTextField userText = new JTextField();
+        userText.setBounds(150, 130, 200, 25);
+        panel.add(userText);
+
+        // Create password label and password field
+        JLabel passwordLabel = new JLabel("Password:");
+        passwordLabel.setBounds(150, 170, 200, 25);
+        panel.add(passwordLabel);
+
+        JPasswordField passwordField = new JPasswordField();
+        passwordField.setBounds(150, 200, 200, 25);
+        panel.add(passwordField);
+
+        JLabel workplaceLabel = new JLabel("Workplace:");
+        workplaceLabel.setBounds(150, 240, 200, 25);
+        panel.add(workplaceLabel);
+
+        JTextField workplaceText = new JTextField();
+        workplaceText.setBounds(150, 270, 200, 25);
+        panel.add(workplaceText);
+
+        JLabel hometownLabel = new JLabel("Hometown:");
+        hometownLabel.setBounds(150, 310, 200, 25);
+        panel.add(hometownLabel);
+
+        JTextField hometownText = new JTextField();
+        hometownText.setBounds(150, 340, 200, 25);
+        panel.add(hometownText);
+
+        JButton registerButton = new JButton("Register");
+        registerButton.setBounds(175, 400, 150, 30);
+        panel.setBackground(new java.awt.Color(223, 223, 223));
+        registerButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                String username = userText.getText();
+                String password = new String(passwordField.getPassword());
+                String workplace = workplaceText.getText();
+                String hometown = hometownText.getText();
+
+                SocialNetwork socialNetwork = new SocialNetwork();
+                if (socialNetwork.isUsernameValid("social_network_data.txt", username)) {
+                    if (socialNetwork.saveUserToFile("social_network_data.txt", username, workplace, hometown, password)) {
+                        User user = socialNetwork.getUser("social_network_data.txt", username);
+                        Homepage.homepage(user);
+                        frame.dispose();
+                    } else {
+                        JOptionPane.showMessageDialog(frame, "Failed to register", "Error", JOptionPane.ERROR_MESSAGE);
+                    }
+                } else {
+                    JOptionPane.showMessageDialog(frame, "Username already exists", "Error", JOptionPane.ERROR_MESSAGE);
+                }
+            }
+        });
+        panel.add(registerButton);
+
+        // Create LogIn button
+        JLabel haveAnAccountLabel = new JLabel("Have an account? LogIn here:");
+        haveAnAccountLabel.setBounds(157, 480, 250, 30); 
+        panel.add(haveAnAccountLabel);
+
+        JButton loginButton = new JButton("LogIn");
+        loginButton.setBounds(175, 515, 150, 30);
+        loginButton.setBorderPainted(false); 
+        loginButton.setContentAreaFilled(false); 
+        loginButton.setFocusPainted(false); 
+        loginButton.setOpaque(false); 
+        loginButton.setForeground(new Color(0, 102, 204)); 
+        loginButton.setFont(new Font("Arial", Font.BOLD, 12)); 
+        panel.add(loginButton);
+
+        // Add action listener for the button
+        loginButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                SingIn_Register.singIn_Register();
+                frame.dispose();
+            }
+        });
+
+        frame.add(panel);
+    }    
+}
+
+//###############################################################################
+//######################## HOMEPAGE #############################################
+//###############################################################################
+class Homepage {
+    private static User loggedInUser;
+    private static int currentUserIndex = 0;
+
+    static void homepage(User user) {
+        loggedInUser = user;
+
+        JFrame frame = new JFrame("Homepage");
+        frame.setSize(500, 800);
+        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        frame.setVisible(true);
+
+        JPanel panel = new JPanel();
+        panel.setBackground(new java.awt.Color(223, 223, 223));
+        panel.setLayout(null);
+
+        JTextField userName = new JTextField();
+        userName.setBounds(80, 50, 200, 30);
+        userName.setBackground(new java.awt.Color(200, 200, 200));
+        userName.setEditable(false);
+        panel.add(userName);
+        
+        JLabel userIcon = new JLabel(new ImageIcon("Icons/user3.png"));
+        userIcon.setBounds(50, 50, 30, 30);
+        panel.add(userIcon);
+        
+        int iconY = userName.getBounds().y + (userName.getBounds().height - userIcon.getBounds().height) / 2;
+        userIcon.setBounds(50, iconY, 30, 30);
+        
+        JTextField postContent = new JTextField();
+        postContent.setBounds(50, 100, 400, 200);
+        postContent.setBackground(new java.awt.Color(200, 200, 200));
+        postContent.setEditable(false);
+        panel.add(postContent);
+        
+        // Adding the button to display the next post
+        JButton nextPostButton = new JButton("Next Post");
+        nextPostButton.setBounds(50, 320, 150, 30);
+        panel.add(nextPostButton);
+
+        // Add an arrow icon to the button
+        nextPostButton.setIcon(new ImageIcon("Icons/arrow.png")); 
+
+        // Creating an instance of SocialNetwork to fetch posts
+        SocialNetwork socialNetwork = new SocialNetwork();
+
+        // Button ActionListener to fetch the next post
+        nextPostButton.addActionListener(e -> {
+            String[] randomUserInfo = socialNetwork.getRandomUserPost("social_network_data.txt");
+            if (randomUserInfo.length > 1) {
+                userName.setText(randomUserInfo[0]);   // Set username
+                postContent.setText(randomUserInfo[1]); // Set post content
+            } else {
+                userName.setText("No users found");
+                postContent.setText("");
+            }
+        });
+
+        JTextField showFriendProposition = new JTextField();
+        showFriendProposition.setBounds(50, 370, 400, 200);
+        showFriendProposition.setBackground(new java.awt.Color(190, 190, 190));
+        showFriendProposition.setEditable(false);
+        panel.add(showFriendProposition);
+
+        String userCity = loggedInUser.getHometown();
+        List<String> friendsInCity = socialNetwork.getUsersFromSameCity(userCity);
+
+        if (friendsInCity.isEmpty()) {
+            showFriendProposition.setText("No friends found in your city.");
+        } else {
+            showFriendProposition.setText("Suggested friend: " + friendsInCity.get(0));   
+
+        Timer timer = new Timer(20000, new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                if (!friendsInCity.isEmpty()) {
+                    currentUserIndex = (currentUserIndex + 1) % friendsInCity.size();
+                    showFriendProposition.setText("People who live with you in same city: " + friendsInCity.get(currentUserIndex));
+                }
+            }
+        });
+
+        timer.start();
+        }
+
+        ImageIcon homeIcon = new ImageIcon("Icons/home3.png");
+        JButton homeButton = new JButton(homeIcon);
+        homeButton.setBounds(50, 700, 25, 25);
+        homeButton.setBorderPainted(false);
+        homeButton.setContentAreaFilled(false);
+        homeButton.setFocusPainted(false);
+        homeButton.setOpaque(false);
+        panel.add(homeButton);
+
+        ImageIcon findFriendsIcon = new ImageIcon("Icons/findFriends3.png");
+        JButton findFriendsButton = new JButton(findFriendsIcon);
+        findFriendsButton.setBounds(150, 700, 25, 25);
+        findFriendsButton.setBorderPainted(false);
+        findFriendsButton.setContentAreaFilled(false);
+        findFriendsButton.setFocusPainted(false);
+        findFriendsButton.setOpaque(false);
+        findFriendsButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                FindFriends.findFriends();
+                frame.dispose();
+            }
+        });
+        panel.add(findFriendsButton);
+
+        ImageIcon addPostIcon = new ImageIcon("Icons/addPost3.png");
+        JButton addPostButton = new JButton(addPostIcon);
+        addPostButton.setBounds(250, 700, 25, 25);
+        addPostButton.setBorderPainted(false);
+        addPostButton.setContentAreaFilled(false);
+        addPostButton.setFocusPainted(false);
+        addPostButton.setOpaque(false);
+        addPostButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                AddPost.addPost();
+                frame.dispose();
+            }
+        });
+        panel.add(addPostButton);
+
+        ImageIcon userProfileIcon = new ImageIcon("Icons/userProfile3.png");
+        JButton userProfileButton = new JButton(userProfileIcon);
+        userProfileButton.setBounds(350, 700, 25, 25);
+        userProfileButton.setBorderPainted(false);
+        userProfileButton.setContentAreaFilled(false);
+        userProfileButton.setFocusPainted(false);
+        userProfileButton.setOpaque(false);
+        userProfileButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                Profile.profile();
+                frame.dispose();
+            }
+        });
+        panel.add(userProfileButton);
+
+        frame.add(panel);
+    }
+
+    public static User getLoggedInUser() {
+        return loggedInUser; // Retrieve the user from any other page
+    }
+}
+
+//###############################################################################
+//######################## FIND FRIENDS #########################################
+//###############################################################################
+class FindFriends {
+    static void findFriends() {
+        User user = Homepage.getLoggedInUser();
+
+        JFrame frame = new JFrame("Find Friends");
+        frame.setSize(500, 800);
+        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+
+        JPanel panel = new JPanel();
+        panel.setBackground(new Color(223, 223, 223));
+        panel.setLayout(null);
+
+        JTextField searchField = new JTextField("Search");
+        JTextArea userArea = new JTextArea(""); // username field
+        JTextArea companyArea = new JTextArea(""); // company field
+        JTextArea cityArea = new JTextArea(""); // city field
+
+        // Search Field
+        searchField.setBounds(50, 50, 200, 25);
+        searchField.addFocusListener(new FocusListener() {
+            @Override
+            public void focusGained(FocusEvent e) {
+                if (searchField.getText().equals("Search")) {
+                    searchField.setText("");
+                }
+            }
+
+            @Override
+            public void focusLost(FocusEvent e) {
+                if (searchField.getText().isEmpty()) {
+                    searchField.setText("Search");
+                }
+            }
+        });
+        panel.add(searchField);
+
+        // Search Button
+        ImageIcon searchIcon = new ImageIcon("Icons/search3.png");
+        JButton searchButton = new JButton(searchIcon);
+        searchButton.setBounds(250, 50, 25, 25);
+        searchButton.setBorderPainted(false);
+        searchButton.setContentAreaFilled(false);
+        searchButton.setFocusPainted(false);
+
+        searchButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                SocialNetwork socialNetwork = new SocialNetwork();
+                String searchUsername = searchField.getText().trim(); 
+
+                // Call searchUser and handle results
+                String[] userDetails = socialNetwork.searchUser("social_network_data.txt", searchUsername);
+
+                if (!userDetails[0].equals("User not found")) {
+                    userArea.setText(userDetails[1]);      // username (taken form index 1)
+                    companyArea.setText(userDetails[2]);  // company (taekn fromindex 2)
+                    cityArea.setText(userDetails[3]);     // city (taken fromm index 3)
+                } else {
+                    userArea.setText("User not found");
+                    companyArea.setText("-");
+                    cityArea.setText("-");
+                    JOptionPane.showMessageDialog(frame, "User not found", "Error", JOptionPane.ERROR_MESSAGE);
+                }
+            }
+        });
+        panel.add(searchButton);
+
+        // Username Field
+        JLabel usernameLabel = new JLabel("Username:");
+        usernameLabel.setBounds(50, 100, 100, 20);
+        panel.add(usernameLabel);
+
+        userArea.setBounds(150, 100, 250, 20);
+        userArea.setBackground(new Color(200, 200, 200));
+        userArea.setEditable(false);
+        panel.add(userArea);
+
+        // Company Field
+        JLabel companyLabel = new JLabel("Company:");
+        companyLabel.setBounds(50, 150, 100, 20);
+        panel.add(companyLabel);
+
+        companyArea.setBounds(150, 150, 250, 20);
+        companyArea.setBackground(new Color(200, 200, 200));
+        companyArea.setEditable(false);
+        panel.add(companyArea);
+
+        // City Field
+        JLabel cityLabel = new JLabel("City:");
+        cityLabel.setBounds(50, 200, 100, 20);
+        panel.add(cityLabel);
+
+        cityArea.setBounds(150, 200, 250, 20);
+        cityArea.setBackground(new Color(200, 200, 200));
+        cityArea.setEditable(false);
+        panel.add(cityArea);
+
+        // add friend button
+        JButton addFriendButton = Pages.createStyledButton("Add friend");
+        addFriendButton.setBounds(120, 280, 220, 30);
+        addFriendButton.setFont(new Font("Arial", Font.PLAIN, 16));
+        addFriendButton.setHorizontalTextPosition(SwingConstants.CENTER);
+        addFriendButton.setBackground(new Color(232, 204, 218)); 
+        addFriendButton.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseEntered(MouseEvent e) {
+                addFriendButton.setBackground(new Color(247, 195, 220)); // hover color
+            }
+
+            @Override
+            public void mouseExited(MouseEvent e) {
+                addFriendButton.setBackground(new Color(232, 204, 218)); // default color
+            }
+        });
+
+        addFriendButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                SocialNetwork socialNetwork = new SocialNetwork();
+                User loggedInUser = Homepage.getLoggedInUser(); // Get the logged-in user
+                String searchUsername = searchField.getText().trim();
+
+                if (searchUsername.isEmpty() || searchUsername.equals("Search")) {
+                    JOptionPane.showMessageDialog(frame, "Please enter a valid username.");
+                    return;
+                }
+
+                // Ensure a user was found in the search
+                if (userArea.getText().equals("User not found") || userArea.getText().isEmpty()) {
+                    JOptionPane.showMessageDialog(frame, "No user found to add.", "Error", JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+
+                // Prevent adding yourself
+                if (searchUsername.equalsIgnoreCase(loggedInUser.getUsername())) {
+                    JOptionPane.showMessageDialog(frame, "You cannot add yourself as a friend!", "Error", JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+
+                // Add friend logic
+                boolean success = socialNetwork.addFriend(loggedInUser, searchUsername);
+
+                if (success) {
+                    JOptionPane.showMessageDialog(frame, searchUsername + " has been added as a friend!");
+                } else {
+                    JOptionPane.showMessageDialog(frame, "Could not add " + searchUsername + ". User may not exist or is already a friend.");
+                }
+
+            }
+        });
+        panel.add(addFriendButton);
+
+        // remove from friends button
+        JButton removeFriendButton = Pages.createStyledButton("Remove Friend");
+        removeFriendButton.setBounds(120, 320, 220, 30);
+        removeFriendButton.setFont(new Font("Arial", Font.PLAIN, 16));
+        removeFriendButton.setHorizontalTextPosition(SwingConstants.CENTER);
+        panel.add(removeFriendButton);
+
+        // Action Listener for Removing Friend
+        removeFriendButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                SocialNetwork socialNetwork = new SocialNetwork();
+                String searchUsername = searchField.getText().trim();
+
+                // Get logged-in user
+                User loggedInUser = Homepage.getLoggedInUser();
+
+                // Find the searched user
+                String[] userDetails = socialNetwork.searchUser("social_network_data.txt", searchUsername);
+                
+                if (userDetails[0].equals("User not found")) {
+                    JOptionPane.showMessageDialog(frame, "User not found!", "Error", JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+
+                // Get the searched friend's userID
+                int friendUserID = Integer.parseInt(userDetails[0]);
+                
+                // Check if the user is actually in the logged-in user's friend list
+                User friendToRemove = loggedInUser.getFriends().getFriendByID(friendUserID);
+
+                if (friendToRemove == null) {
+                    JOptionPane.showMessageDialog(frame, "This user is not in your friend list!", "Error", JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+
+                // Remove friend
+                loggedInUser.getFriends().removeFriend(friendToRemove);
+
+                // Update file
+                socialNetwork.updateUserFriendsInFile(loggedInUser);
+
+                JOptionPane.showMessageDialog(frame, "Friend removed successfully!");
+            }
+        });
+
+        // friends recommendations friends of friends
+        JButton recommendFriendsButton = new JButton("Recommend Friends of friends");
+        recommendFriendsButton.setBounds(75, 460, 300, 30); 
+        panel.add(recommendFriendsButton);
+        recommendFriendsButton.addActionListener(e -> {
+            List<User> recommendedFriends = SocialNetwork.getFriendRecommendations(user);
+            if (recommendedFriends.isEmpty()) {
+                JOptionPane.showMessageDialog(panel, "No recommendations found.");
+            } else {
+                String friendsList = recommendedFriends.stream()
+                        .map(User::getUsername)
+                        .collect(Collectors.joining(", "));
+                JOptionPane.showMessageDialog(panel, "Recommended Friends: " + friendsList);
+            }
+        });
+        panel.add(recommendFriendsButton);
+
+
+        // Navigation Buttons
+        ImageIcon homeIcon = new ImageIcon("Icons/home3.png");
+        JButton homeButton = new JButton(homeIcon);
+        homeButton.setBounds(50, 700, 25, 25);
+        homeButton.setBorderPainted(false);
+        homeButton.setContentAreaFilled(false);
+        homeButton.setFocusPainted(false);
+
+	homeButton.addActionListener(new ActionListener() {
+	    @Override
+	    public void actionPerformed(ActionEvent e) {
+	        User user = Homepage.getLoggedInUser();
+	        Homepage.homepage(user);
+	        frame.dispose();
+	    }
+	});
+	panel.add(homeButton);
+
+	ImageIcon findFriendsIcon = new ImageIcon("Icons/findFriends3.png");
+	JButton findFriendsButton = new JButton(findFriendsIcon);
+	findFriendsButton.setBounds(150, 700, 25, 25);
+	findFriendsButton.setBorderPainted(false);
+	findFriendsButton.setContentAreaFilled(false);
+	findFriendsButton.setFocusPainted(false);
+	panel.add(findFriendsButton);
+
+	ImageIcon addPostIcon = new ImageIcon("Icons/addPost3.png");
+	JButton addPostButton = new JButton(addPostIcon);
+	addPostButton.setBounds(250, 700, 25, 25);
+	addPostButton.setBorderPainted(false);
+	addPostButton.setContentAreaFilled(false);
+	addPostButton.setFocusPainted(false);
+
+	addPostButton.addActionListener(new ActionListener() {
+	    @Override
+	    public void actionPerformed(ActionEvent e) {
+	        AddPost.addPost();
+	        frame.dispose();
+	    }
+	});
+	panel.add(addPostButton);
+
+	ImageIcon userProfileIcon = new ImageIcon("Icons/userProfile3.png");
+	JButton userProfileButton = new JButton(userProfileIcon);
+	userProfileButton.setBounds(350, 700, 25, 25);
+	userProfileButton.setBorderPainted(false);
+	userProfileButton.setContentAreaFilled(false);
+	userProfileButton.setFocusPainted(false);
+
+	userProfileButton.addActionListener(new ActionListener() {
+	    @Override
+	    public void actionPerformed(ActionEvent e) {
+	        Profile.profile();
+	        frame.dispose();
+	    }
+	});
+	panel.add(userProfileButton);
+
+	// frame 
+	frame.add(panel);
+	frame.setVisible(true); 
+    }
+}
+
+//################################################################
+//################## POST PAGE ###############################
+//################################################################
+class AddPost {
+    static void addPost() {
+        User user = Homepage.getLoggedInUser();
+
+        JFrame frame = new JFrame("Add a Post");
+        frame.setSize(500, 800);
+        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        frame.setVisible(true);
+
+        JPanel panel = new JPanel();
+        panel.setBackground(new java.awt.Color(223, 223, 223));
+        panel.setLayout(null);
+        frame.add(panel);
+
+        JLabel postLabel = new JLabel("Write your post:");
+        postLabel.setBounds(50, 50, 150, 30);
+        panel.add(postLabel);
+
+        JTextField postInfo = new JTextField();
+        postInfo.setBounds(50, 100, 380, 150);
+        postInfo.setBackground(new java.awt.Color(200, 200, 200));
+        panel.add(postInfo);
+
+        JButton uploadPost = new JButton("Post");
+        uploadPost.setBounds(50, 270, 100, 40);
+        uploadPost.setForeground(Color.BLACK);
+        uploadPost.setFocusPainted(false);
+        uploadPost.setOpaque(true);
+        uploadPost.setBackground(new Color(247, 195, 220));
+        panel.add(uploadPost); 
+
+        // load posts before displaying**
+        user.setPosts(SocialNetwork.loadPostsForUser(user.getUserID()));
+        
+        // create a separate panel for posts**
+        JPanel postsPanel = new JPanel();
+        postsPanel.setLayout(new BoxLayout(postsPanel, BoxLayout.Y_AXIS));
+        postsPanel.setBounds(50, 370, 380, 300);
+        postsPanel.setBackground(new java.awt.Color(223, 223, 223));
+        panel.add(postsPanel);
+
+        displayUserPosts(user, postsPanel); // Display posts in separate panel
+
+        uploadPost.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                String postContent = postInfo.getText();
+
+                // write save method to save post to social_network_data.txt
+                if (!postContent.isEmpty()){
+                    int newPostID = SocialNetwork.getLastPostID("social_network_data.txt"); // Ensure unique post ID
+                    Post newPost = new Post(newPostID, postContent);
+                    PostList postList = new PostList();
+                    postList.addPost(newPost);
+                    // save post to file
+                    // add user  id to this method 
+                    SocialNetwork.savePostToFile("social_network_data.txt", user.getUserID(), postContent);
+                    
+                    // Update user's PostList
+                    user.getPosts().addPost(newPost);
+
+                    // Refresh UI to display new post
+                    displayUserPosts(user, panel);
+                    
+                    JOptionPane.showMessageDialog(frame, "Post uploaded successfully!");
+                    postInfo.setText(""); // Clear input field
+                }
+                else {
+                    JOptionPane.showMessageDialog(frame, "Post cannot be empty!");
+                }
+            }
+        });
+        panel.add(uploadPost);
+
+        JLabel userPostsLabel = new JLabel("Your posts: ");
+        userPostsLabel.setBounds(50, 350, 150, 30);
+        panel.add(userPostsLabel);
+
+
+        ImageIcon homeIcon = new ImageIcon("Icons/home3.png");
+        JButton homeButton = new JButton(homeIcon);
+        homeButton.setBounds(50, 700, 25, 25);
+        homeButton.setBorderPainted(false);
+        homeButton.setContentAreaFilled(false);
+        homeButton.setFocusPainted(false);
+        homeButton.setOpaque(false);
+        homeButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                
+                Homepage.homepage(user);
+                frame.dispose();
+            }
+        });
+        panel.add(homeButton);
+
+        ImageIcon findFriendsIcon = new ImageIcon("Icons/findFriends3.png");
+        JButton findFriendsButton = new JButton(findFriendsIcon);
+        findFriendsButton.setBounds(150, 700, 25, 25);
+        findFriendsButton.setBorderPainted(false);
+        findFriendsButton.setContentAreaFilled(false);
+        findFriendsButton.setFocusPainted(false);
+        findFriendsButton.setOpaque(false);
+        findFriendsButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                FindFriends.findFriends();
+                frame.dispose();
+            }
+        });
+        panel.add(findFriendsButton);
+
+        ImageIcon addPostIcon = new ImageIcon("Icons/addPost3.png");
+        JButton addPostButton = new JButton(addPostIcon);
+        addPostButton.setBounds(250, 700, 25, 25);
+        addPostButton.setBorderPainted(false);
+        addPostButton.setContentAreaFilled(false);
+        addPostButton.setFocusPainted(false);
+        addPostButton.setOpaque(false);
+        panel.add(addPostButton);
+
+        ImageIcon userProfileIcon = new ImageIcon("Icons/userProfile3.png");
+        JButton userProfileButton = new JButton(userProfileIcon);
+        userProfileButton.setBounds(350, 700, 25, 25);
+        userProfileButton.setBorderPainted(false);
+        userProfileButton.setContentAreaFilled(false);
+        userProfileButton.setFocusPainted(false);
+        userProfileButton.setOpaque(false);
+        userProfileButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                Profile.profile();
+                frame.dispose();
+            }
+        });
+        panel.add(userProfileButton);
+    }
+
+    public static void displayUserPosts(User user, JPanel postsPanel) {
+        // Clear the current posts to refresh the display    
+        // Check if posts are loaded
+        int y = 20;
+
+        if (user.getPosts().getPosts().isEmpty()) {
+            JLabel noPostsLabel = new JLabel("No posts yet.");
+            postsPanel.add(noPostsLabel);
+        } else {
+            // Display each post in a JTextArea
+            for (Post post : user.getPosts().getPosts()) { 
+                JTextArea postArea = new JTextArea(post.displayPost());
+                postArea.setPreferredSize(new Dimension(400, 60));
+                postArea.setEditable(false);
+                postArea.setBackground(new java.awt.Color(200, 200, 200));
+                postsPanel.add(postArea);
+                y += 70;
+            }
+        }
+    
+        // Revalidate and repaint to ensure the postsPanel is updated
+        postsPanel.revalidate();
+        postsPanel.repaint();
+    }
+      
+}
+
+
+//###############################################################################
+//######################## PROFILE PAGE ####################################
+//###############################################################################
+class Profile {
+    static void profile() {
+        User user = Homepage.getLoggedInUser();
+
+        JFrame frame = new JFrame("User Profile");
+        frame.setSize(500, 800);
+        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        frame.setVisible(true);
+
+        JPanel panel = new JPanel();
+        panel.setBackground(new java.awt.Color(223, 223, 223));
+        panel.setLayout(null);
+        frame.add(panel);
+
+        JTextField userIDField = new JTextField("User ID: " + user.getUserID());
+        userIDField.setBounds(50, 50, 400, 30);
+        userIDField.setEditable(false);
+        panel.add(userIDField);
+
+        JTextField usernameField = new JTextField("Username: " + user.getUsername());
+        usernameField.setBounds(50, 100, 400, 30);
+        usernameField.setEditable(false);
+        panel.add(usernameField);
+
+        JTextField companyField = new JTextField("Company: " + user.getWorkplace());
+        companyField.setBounds(50, 150, 400, 30);
+        companyField.setEditable(false);
+        panel.add(companyField);
+
+        JTextField cityField = new JTextField("City: " + user.getHometown());
+        cityField.setBounds(50, 200, 400, 30);
+        cityField.setEditable(false);
+        panel.add(cityField);
+
+        JTextField passwordField = new JTextField("Password: " + user.getPassword());
+        passwordField.setBounds(50, 250, 400, 30);
+        passwordField.setEditable(false);
+        panel.add(passwordField);
+
+         // Display Friends List
+         JTextArea friendsListArea = new JTextArea();
+         friendsListArea.setBounds(50, 300, 400, 150);
+         friendsListArea.setEditable(false);
+ 
+         // Get the Set of friends from FriendList
+         Set<User> friends = user.getFriends().getFriends(); // Get the Set<User> from FriendList
+ 
+         // Check if the user has friends and display them
+         if (friends.isEmpty()) {
+             friendsListArea.setText("No friends in your list.");
+         } else {
+             StringBuilder friendsListText = new StringBuilder("Friends List:\n");
+             // Iterate through the Set of friends and display their usernames
+             for (User friend : friends) {
+                 friendsListText.append(friend.getUsername()).append("\n");
+             }
+             friendsListArea.setText(friendsListText.toString());
+         }
+         panel.add(friendsListArea);
+
+        // log out button 
+        // Create LogIn button
+        JButton logoutButton = new JButton("Log out");
+        logoutButton.setBounds(175, 485, 150, 30);
+        logoutButton.setBorderPainted(false); 
+        logoutButton.setContentAreaFilled(false); 
+        logoutButton.setFocusPainted(false); 
+        logoutButton.setOpaque(false); 
+        panel.add(logoutButton);
+
+        // Add action listener for the button
+        logoutButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                SingIn_Register.singIn_Register();
+                frame.dispose();
+            }
+        });
+
+        ImageIcon homeIcon = new ImageIcon("Icons/home3.png");
+        JButton homeButton = new JButton(homeIcon);
+        homeButton.setBounds(50, 700, 25, 25);
+        homeButton.setBorderPainted(false);
+        homeButton.setContentAreaFilled(false);
+        homeButton.setFocusPainted(false);
+        homeButton.setOpaque(false);
+        homeButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                Homepage.homepage(user);
+                frame.dispose();
+            }
+        });
+        panel.add(homeButton);
+
+        ImageIcon findFriendsIcon = new ImageIcon("Icons/findFriends3.png");
+        JButton findFriendsButton = new JButton(findFriendsIcon);
+        findFriendsButton.setBounds(150, 700, 25, 25);
+        findFriendsButton.setBorderPainted(false);
+        findFriendsButton.setContentAreaFilled(false);
+        findFriendsButton.setFocusPainted(false);
+        findFriendsButton.setOpaque(false);
+        findFriendsButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                FindFriends.findFriends();
+                frame.dispose();
+            }
+        });
+        panel.add(findFriendsButton);
+
+        ImageIcon addPostIcon = new ImageIcon("Icons/addPost3.png");
+        JButton addPostButton = new JButton(addPostIcon);
+        addPostButton.setBounds(250, 700, 25, 25);
+        addPostButton.setBorderPainted(false);
+        addPostButton.setContentAreaFilled(false);
+        addPostButton.setFocusPainted(false);
+        addPostButton.setOpaque(false);
+        addPostButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                AddPost.addPost();
+                frame.dispose();
+            }
+        });
+        panel.add(addPostButton);
+
+        ImageIcon userProfileIcon = new ImageIcon("Icons/userProfile3.png");
+        JButton userProfileButton = new JButton(userProfileIcon);
+        userProfileButton.setBounds(350, 700, 25, 25);
+        userProfileButton.setBorderPainted(false);
+        userProfileButton.setContentAreaFilled(false);
+        userProfileButton.setFocusPainted(false);
+        userProfileButton.setOpaque(false);
+        panel.add(userProfileButton);
+    }
+}
+        </code></pre>
+        <pre id="f4" class="language-java" style="display:none;"><code>
+// Post class 
+// It should contain: postID, content, likes
+// methods: get/set, addLike(), removeLike(), displayPost()
+
+public class Post {
+    // instance variables
+    private int postID;
+    private String content;
+    private int likes;
+
+    // constructor 1
+    public Post(){
+        postID = 0;
+        content = "none";
+        likes = 0;
+    }
+
+    // constructor 2
+    public Post(int postID, String content){
+        this.postID = postID;
+        this.content = content;
+        likes = 0;
+    }
+
+    public Post(int postID, String content, int likes){
+        this.postID = postID;
+        this.content = content;
+        this.likes = likes;
+    }
+
+    // get methods
+    public int getPostID(){
+        return postID;
+    }
+    public String getContent(){
+        return content;
+    }
+    public int getLikes(){
+        return likes;
+    }
+
+    // set methods
+    public void setPostID(int postID) {
+        this.postID = postID;
+    }
+    public void setContent(String content) {
+        this.content = content;
+    }
+    public void setLikes(int likes) {
+        this.likes = likes;
+    }
+
+    // main methods
+    public void addLike(){
+        likes++;
+    }
+    public void removeLike(){
+        if (likes > 0){
+            likes--;
+        }
+        else{
+            System.out.println("Post unliked");
+        }
+    }
+    public String displayPost(){
+        return "Post ID: " + postID + "\nPost content: " + content + "\nPost likes:" + likes;
+    }
+}
+        </code></pre>
+        <pre id="5" class="language-java" style="display:none;"><code>
+// PostList class
+// It should use a LinkedList structure to store the list of posts
+// Methods: addPost(Post p), removePost(Post p), searchPost(), likePost(), unlikePost(), displayPosts(), scrollPosts()
+import java.util.LinkedList;
+import java.util.Scanner;
+
+public class PostList {
+    // new variable that will store a LinkedList of Post objects
+    LinkedList<Post> posts;
+
+    // constructor
+    public PostList(){
+        posts = new LinkedList<Post>();
+    }
+    
+    // get posts
+    public LinkedList<Post> getPosts(){
+        return posts;
+    }
+    
+    // add post method
+    public void addPost(Post p){
+        posts.add(p);
+        System.out.println("Post added successfully");
+    }
+
+    // remove post method
+    public void removePost(Post p){
+        posts.remove(p);
+        System.out.println("Post removed successfully");
+    }
+
+    // search post method
+    public Post searchPost(int postID){
+        for (Post p : posts){
+            if (p.getPostID() == postID){
+                return p;
+            }
+        }
+        return null;
+    }
+
+    // like post method
+    public void likePost(int postID){
+        Post p = searchPost(postID);
+
+        if (p != null){
+            p.addLike();
+            System.out.println("Post liked successfully");
+        }
+        else{
+            System.out.println("Post not found");
+        }
+    }
+
+    // unlike post method
+    public void unlikePost(int postID){
+        Post p = searchPost(postID);
+        
+        if (p != null){
+            p.removeLike();
+            System.out.println("Post unliked successfully");
+        }
+        else{
+            System.out.println("Post not found");
+        }
+    }
+
+    // display posts method
+    public void displayPosts(){
+        System.out.println("Displaying all posts");
+        int index = 1;
+
+        for (Post p : posts){
+            System.out.println("Post " + index);
+            p.displayPost();
+            index++;
+        }
+    }
+
+    // scroll through posts method
+    public void scrollPosts(){
+        // scrolling through posts
+        Scanner s = new Scanner(System.in);
+        System.out.println("Scrolling through posts");
+        int index = 1;
+
+        for (Post p : posts){
+            // display post
+            System.out.println("Post " + index);
+            p.displayPost();
+
+            // like post??
+            System.out.println("Do you want to like this post?");
+            String answer = s.nextLine();
+            if (answer.equals("yes")){
+                p.addLike();
+            }
+
+            // unlike post??
+            System.out.println("Do you want to unlike this post?");
+            String answer2 = s.nextLine();
+            if (answer2.equals("yes")){
+                p.removeLike();
+            }
+
+            // exit post??
+            System.out.println("Do you want to exit scrolling?");
+            String answer3 = s.nextLine();
+            if (answer3.equals("yes")){
+                break;
+            }
+
+            // move to past post??
+            System.out.println("Do you want to move? Type 'previous' to move to the previous post or 'next' to move to the next post");
+            String answer4 = s.nextLine();
+            if (answer4.equals("previous")){
+                index--;
+                if (index < 1){
+                    index = 1;
+                }
+            }
+            else{
+                index++;
+            }
+        }
+    }
+}
+        </code></pre>
+        <pre id="f6" class="language-java" style="display:none;"><code>
+// FriendList class
+// It should use Set<User> hashSet<User> data structure to store the list of friends
+// Methods: addFriend(User u), removeFriend(User u), displayFriends(), getFriend(), isFriend(User u) - check if the friend in a friendList
+
+import java.util.HashSet;
+import java.util.Set;
+
+public class FriendList {
+    private Set<User> friends;
+
+    public FriendList() {
+        this.friends = new HashSet<>();
+    }
+
+    // add a friend
+    public void addFriend(User user) {
+        friends.add(user);
+    }
+
+    // remove a friend
+    public void removeFriend(User user) {
+        friends.remove(user);
+    }
+
+    // check if someone is a friend
+    public boolean isFriend(User user) {
+        return friends.contains(user);
+    }
+
+    // display all friends
+    public void displayFriends() {
+        if (friends.isEmpty()) {
+            System.out.println("No friends in your list.");
+        } else {
+            System.out.println("Your Friends:");
+            for (User friend : friends) {
+                System.out.println("- " + friend.getUsername());
+            }
+        }
+    }
+
+    // get the Set of friends
+    public Set<User> getFriends() {
+        return friends;
+    }
+
+    // get friend by ID
+    public User getFriendByID(int userID) {
+        for (User friend : friends) {
+            if (friend.getUserID() == userID) {
+                return friend;  // Found friend
+            }
+        }
+        return null;  // Friend not found
+    }
+
+    // get comma-separated friend IDs (for saving to a file)
+    public String getFriendsIDs() {
+        StringBuilder ids = new StringBuilder();
+        for (User friend : friends) {
+            ids.append(friend.getUserID()).append(",");
+        }
+        return ids.length() > 0 ? ids.substring(0, ids.length() - 1) : ""; // Remove trailing comma
+    }
 }
         </code></pre>
       </div>
@@ -85,34 +2069,8 @@ public class Network {
         Implemented role-based access control, input validation, and error handling layers.
       </p>
       <a href="https://github.com/Dembem1/library-system" target="_blank">→ GitHub Repository</a>
-      <button class="btn btn-accent btn-sm view-code-btn" onclick="toggleProject('p2')">View Code</button>
+      <button class="btn btn-accent btn-sm view-code-btn" onclick="toggleProject('p2')">The project is in work, please check later.</button>
 
-      <div id="p2" class="project-code">
-        <div class="file-tabs">
-          <button class="file-tab active" onclick="showFile('p2','t1')">LibraryApplication.java</button>
-          <button class="file-tab" onclick="showFile('p2','t2')">BookController.java</button>
-        </div>
-        <pre id="t1" class="language-java"><code>
-// Example placeholder – replace with your own code
-@SpringBootApplication
-public class LibraryApplication {
-    public static void main(String[] args) {
-        SpringApplication.run(LibraryApplication.class, args);
-    }
-}
-        </code></pre>
-        <pre id="t2" class="language-java" style="display:none;"><code>
-// Example placeholder
-@RestController
-@RequestMapping("/books")
-public class BookController {
-    @GetMapping
-    public String listBooks() {
-        return "All Books";
-    }
-}
-        </code></pre>
-      </div>
       <p class="mt-2"><strong>Tools Used:</strong> Java, Spring Boot, MySQL, JPA, RESTful APIs</p>
     </div>
 
